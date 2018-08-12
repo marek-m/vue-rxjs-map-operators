@@ -20,7 +20,6 @@ export default class OperationsContainer extends Vue {
     const container: Element = <Element>this.$refs.container;
     this.containerHeight = container.clientHeight;
     this.containerWidth = container.clientWidth;
-    console.log(this.containerHeight, this.containerWidth);
   }
 
   public mounted() {
