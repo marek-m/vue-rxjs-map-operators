@@ -1,5 +1,8 @@
 # vue-rxjs-map-operators
-
+```
+switchMap, mergeMap, concatMap, exhaustMap
+```
+Presenting usage of RxJS operators.
 ## Project setup
 ```
 npm install
