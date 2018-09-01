@@ -1,5 +1,5 @@
-import {concatMap, exhaustMap, filter, map, mergeMap, switchMap, take, tap} from 'rxjs/operators';
-import {interval, merge, Observable, Subject} from 'rxjs';
+import {concatMap, exhaustMap, filter, map, mergeMap, switchMap, take, takeUntil, tap} from 'rxjs/operators';
+import {animationFrameScheduler, interval, merge, Observable, Subject} from 'rxjs';
 import {Component, Vue} from 'vue-property-decorator';
 import Ball from '../ball/ball.vue';
 import {OperationType} from '../operation.enum';
@@ -33,7 +33,68 @@ export default class OperationsContainer extends Vue {
     this.destroy$.next();
   }
 
-  public mapToOperator(operator: OperationType, innerObservable$: AnimationFunction) {
+  public createOperatorsAndSubscribe(width: number, height: number) {
+
+    const animation: AnimationFunction = this.animateValues(height, 200);
+
+    const switchPipe = this.throwBall$.pipe(this.createAndAnimate(OperationType.SWITCH_MAP, animation));
+    const mergePipe = this.throwBall$.pipe(this.createAndAnimate(OperationType.MERGE_MAP, animation));
+    const concatPipe = this.throwBall$.pipe(this.createAndAnimate(OperationType.CONCAT_MAP, animation));
+    const exhaustPipe = this.throwBall$.pipe(this.createAndAnimate(OperationType.EXHAUST_MAP, animation));
+
+    const allPipes$ = merge(switchPipe, mergePipe, concatPipe, exhaustPipe);
+
+    allPipes$.subscribe((parameters: AnimationParameters) => {
+      console.log(parameters);
+      parameters.element.$el.style.top = `${parameters.value}px`;
+    });
+  }
+
+  public clear() {
+    const el: Element = <Element>this.$refs.container;
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
+  }
+
+  public handleClick(operation: OperationType) {
+    this.throwBall$.next(operation);
+  }
+
+  private createBall(operation: OperationType): Vue {
+    const color = this.getBallColor(operation);
+    const BallComponent = Vue.extend(Ball);
+    const left = Math.random() * (this.containerWidth - 50);
+    return new BallComponent({propsData: {left, color}});
+  }
+
+  private animateValues =
+    (containerHeight: number, animationSteps: number): AnimationFunction =>
+      (element: Vue): Observable<AnimationParameters> => {
+        return interval(0, animationFrameScheduler).pipe(
+          take(animationSteps),
+          map((value: number) => value * ((containerHeight - 50) / animationSteps)),
+          map((value: number) => ({element, value}))
+        );
+      };
+
+  private addToContainer(element: Vue) {
+    element.$mount();
+    const el: Element = <Element>this.$refs.container;
+    el.appendChild(element.$el);
+  }
+
+  private createAndAnimate(operation: OperationType, animation$: AnimationFunction) {
+    return (source$: Observable<number>) => source$.pipe(
+      filter((pipeOperation) => operation === pipeOperation),
+      map(() => this.createBall(operation)),
+      tap((component) => this.addToContainer(component)),
+      this.mapToOperator(operation, animation$),
+      takeUntil(this.destroy$)
+    );
+  }
+
+  private mapToOperator(operator: OperationType, innerObservable$: AnimationFunction) {
     return (source$: Observable<Vue>) => {
       switch (operator) {
         case OperationType.SWITCH_MAP: {
@@ -54,7 +115,7 @@ export default class OperationsContainer extends Vue {
     }
   }
 
-  public getBallColor(operator: OperationType): string {
+  private getBallColor(operator: OperationType): string {
     switch (operator) {
       case OperationType.SWITCH_MAP: {
         return 'red';
@@ -71,65 +132,5 @@ export default class OperationsContainer extends Vue {
       default:
         return 'black';
     }
-  }
-
-  public createAndShow(operation: OperationType, animation$: AnimationFunction) {
-    return (source$: Observable<number>) => source$.pipe(
-      filter((pipeOperation) => operation === pipeOperation),
-      map(() => this.createBall(operation)),
-      tap((component) => this.addToContainer(component)),
-      this.mapToOperator(operation, animation$)
-    );
-  }
-
-  public createOperatorsAndSubscribe(width: number, height: number) {
-
-    const animation: AnimationFunction = this.animateValues(height, 40);
-
-    const switchPipe = this.throwBall$.pipe(this.createAndShow(OperationType.SWITCH_MAP, animation));
-    const mergePipe = this.throwBall$.pipe(this.createAndShow(OperationType.MERGE_MAP, animation));
-    const concatPipe = this.throwBall$.pipe(this.createAndShow(OperationType.CONCAT_MAP, animation));
-    const exhaustPipe = this.throwBall$.pipe(this.createAndShow(OperationType.EXHAUST_MAP, animation));
-
-    const allPipes$ = merge(switchPipe, mergePipe, concatPipe, exhaustPipe);
-
-    allPipes$.subscribe((parameters: AnimationParameters) => {
-      console.log(parameters);
-      parameters.element.$el.style.top = `${parameters.value}px`;
-    });
-  }
-
-  public animateValues =
-    (containerHeight: number, animationSteps: number): AnimationFunction =>
-      (element: Vue): Observable<AnimationParameters> => {
-        return interval(80).pipe(
-          take(animationSteps),
-          map((value: number) => value * ((containerHeight - 50) / animationSteps)),
-          map((value: number) => ({element, value}))
-        );
-      };
-
-  public clear() {
-    const el: Element = <Element>this.$refs.container;
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
-    }
-  }
-
-  public handleClick(operation: OperationType) {
-    this.throwBall$.next(operation);
-  }
-
-  public createBall(operation: OperationType): Vue {
-    const color = this.getBallColor(operation);
-    const BallComponent = Vue.extend(Ball);
-    const left = Math.random() * (this.containerWidth - 50);
-    return new BallComponent({propsData: {left, color}});
-  }
-
-  private addToContainer(element: Vue) {
-    element.$mount();
-    const el: Element = <Element>this.$refs.container;
-    el.appendChild(element.$el);
   }
 }
