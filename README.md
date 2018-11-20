@@ -3,7 +3,7 @@
 switchMap, mergeMap, concatMap, exhaustMap
 ```
 Presenting usage of RxJS operators: 
-[link](https://rxjs-operators.firebaseapp.com/)
+[https://marek-m.github.io/vue-rxjs-map-operators/](https://marek-m.github.io/vue-rxjs-map-operators/)
 ## Project setup
 ```
 npm install
