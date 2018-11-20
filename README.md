@@ -2,7 +2,8 @@
 ```
 switchMap, mergeMap, concatMap, exhaustMap
 ```
-Presenting usage of RxJS operators.
+Presenting usage of RxJS operators: 
+[link](https://rxjs-operators.firebaseapp.com/)
 ## Project setup
 ```
 npm install
